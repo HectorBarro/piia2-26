@@ -94,7 +94,7 @@ La verdad de referencia original incluye campos que no aparecen en las imágenes
 
 ## Arquitectura y decisiones
 
-La arquitectura de la solución, con el diagrama de componentes, la responsabilidad de cada uno y el flujo de extremo a extremo de cada funcionalidad, está en **[`ARCHITECTURE.md`](ARCHITECTURE.md)**.
+La arquitectura de la solución está en **[`ARCHITECTURE.md`](ARCHITECTURE.md)**: dos diagramas (vista general y componentes de `src/`), la responsabilidad de cada componente y el flujo de extremo a extremo de cada funcionalidad.
 
 Las decisiones de implementación están documentadas como ADRs en [`decisions/`](decisions/):
 

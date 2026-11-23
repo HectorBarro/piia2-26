@@ -5,79 +5,113 @@ una y cómo circula la información entre ellas. Las razones de cada elección
 están en los ADRs de [`decisions/`](decisions/), y lo que hace cada
 funcionalidad, en [`specs/`](specs/).
 
-## Diagrama
+## Diagramas
+
+La arquitectura se muestra en dos niveles, como en el
+[modelo C4](https://c4model.com/): primero las piezas del sistema y lo que
+intercambian, y después los módulos de `src/` y quién llama a quién. En los
+dos, las flechas van de quien llama, usa, lee o escribe hacia lo llamado o lo
+leído, y las etiquetas dicen qué viaja.
+
+### Vista general
 
 ```mermaid
 flowchart TB
     U([Persona usuaria])
+    EQ([Equipo])
 
-    subgraph UI["Interfaz · src/app.py (Streamlit)"]
-        APP["App Streamlit<br/>carga, visor, tablas editables,<br/>validación humana, chat, exportación,<br/>último reporte de métricas"]
-        SES[("st.session_state<br/>resultado del modelo,<br/>JSON validado, historial")]
-    end
-
-    subgraph SRC["Lógica · src/procesamiento_documental/"]
-        INT["integraciones.py<br/>fachada para la app"]
-        PIPE["pipeline.py<br/>clasificar → extraer → validar"]
-        CLI["cliente.py<br/>ModelClient<br/><b>única pieza que habla con Groq</b>"]
-        PRO["prompts.py<br/>prompts, categorías, PROMPT_VERSION"]
-        ESQ[["Hospital_Bill.json<br/>Discharge_Summary.json<br/>JSON Schema 2020-12"]]
-        VAL["validacion.py<br/>esquema + campos ausentes"]
-        MSG["mensajes.py<br/>errores en castellano"]
-        REV["revision.py<br/>cambios modelo ↔ persona"]
-        TAB["tablas.py<br/>JSON ↔ tablas"]
-        EXP["exportacion.py<br/>JSON, CSV, Excel"]
-        ING["ingesta.py<br/>dataset, imagen → data URL"]
-        MET["metricas.py<br/>comparación y reportes"]
-    end
-
-    subgraph EVAL["Evaluación · script/"]
-        SCR["evaluar_metricas.py"]
-    end
-
-    GROQ{{"API de Groq<br/>modelo de GROQ_MODEL<br/>json_object, temperature=0"}}
-    RAW[("data/raw/<br/>1000 JPEG + verdad original")]
-    NB["Notebooks/limpieza_datos.ipynb"]
-    PROC[("data/processed/<br/>verdad de referencia limpia")]
-    OUT[("output/<br/>metricas_*.csv<br/>prueba_modelo_*.csv")]
+    APP["<b>App Streamlit</b><br/>src/app.py<br/>solo presentación"]
+    SES[("st.session_state<br/>resultados, revisiones<br/>e historial del chat")]
     FILES[/"Ficheros exportados<br/>.json · .csv · .xlsx"/]
+    SRC["<b>Lógica</b><br/>src/procesamiento_documental/<br/>clasificar, extraer, validar,<br/>consultar, exportar, medir"]
+    SCR["<b>Evaluación</b><br/>script/evaluar_metricas.py"]
+    GROQ{{"<b>API de Groq</b><br/>modelo de GROQ_MODEL"}}
 
-    U -- "imagen, correcciones,<br/>preguntas, campo adicional" --> APP
-    APP -- "resultado, tablas, respuestas,<br/>mensajes de error" --> U
+    RAW[("data/raw/<br/>1000 JPEG +<br/>verdad original")]
+    NB["Notebooks/<br/>limpieza_datos.ipynb"]
+    PROC[("data/processed/<br/>verdad limpia")]
+    OUT[("output/<br/>reportes CSV")]
+
+    U -- "imagen JPEG, correcciones,<br/>preguntas" --> APP
     APP <--> SES
-    APP -- "bytes de la imagen, pregunta,<br/>JSON validado" --> INT
-    INT -- "ResultadoProcesamiento,<br/>ResultadoPregunta" --> APP
-    INT --> PIPE
-    INT -- "preguntas, campo adicional" --> CLI
-    INT --> REV
-    INT --> MSG
-    PIPE --> CLI
-    PIPE --> VAL
-    CLI --> PRO
-    CLI --> ESQ
-    VAL --> ESQ
-    CLI -- "mensajes + imagen<br/>(data URL)" --> GROQ
-    GROQ -- "JSON + tokens" --> CLI
-    APP -- "lista el dataset,<br/>comprueba que es JPEG" --> ING
-    APP --> TAB
-    TAB --> VAL
-    APP --> EXP
-    EXP --> FILES
-    APP -- "lee el último reporte" --> MET
-    MET --> OUT
-
+    APP -- "descargas" --> FILES
+    APP -- "llama a sus funciones" --> SRC
+    EQ -- "ejecuta" --> SCR
+    SCR -- "misma tubería que la app" --> SRC
+    SRC -- "imagen o JSON + prompt<br/>→ respuesta JSON" --> GROQ
+    SRC -- "lee" --> RAW
+    SRC -- "lee" --> PROC
     RAW --> NB --> PROC
-    ING -- "lee imágenes" --> RAW
-    ING -- "lee verdad limpia" --> PROC
-    SCR --> ING
-    SCR --> PIPE
-    SCR --> MET
-    SCR -- "escribe reportes" --> OUT
+    SCR -- "escribe" --> OUT
+    SRC -- "lee el último reporte" --> OUT
 ```
 
-Las flechas indican quién llama a quién o quién lee o escribe un dato. Solo
-`cliente.py` tiene una flecha hacia Groq: ni la app ni el script llaman a la
-API directamente.
+La persona usuaria solo trata con la app, y el equipo lanza la evaluación
+aparte. La app y el script usan la misma lógica de `src/`, que es la única que
+llama a Groq. También es `src/` quien localiza el dataset y lee la verdad de
+referencia; la app solo lee del disco la imagen que se elige, con la ruta que
+le da `ingesta.load_dataset()`. Nada se guarda en una base de datos: el estado
+de cada documento vive en la sesión de Streamlit, y los reportes, en
+`output/`.
+
+### Componentes de `src/`
+
+```mermaid
+flowchart LR
+    APP["App Streamlit<br/>src/app.py"]
+    SCR["script/<br/>evaluar_metricas.py"]
+
+    subgraph SRC["src/procesamiento_documental/"]
+        subgraph APOYO["Apoyo a la interfaz"]
+            TAB["tablas.py<br/>JSON ↔ tablas"]
+            EXP["exportacion.py<br/>JSON, CSV, Excel"]
+        end
+        subgraph CONSULTA["Fachada de la app"]
+            INT["integraciones.py<br/>procesar, preguntar,<br/>campo adicional"]
+            REV["revision.py<br/>cambios de la persona"]
+            MSG["mensajes.py<br/>errores en castellano"]
+        end
+        subgraph NUCLEO["Procesamiento de un documento"]
+            PIPE["pipeline.py<br/>clasificar → extraer<br/>→ validar"]
+            CLI["cliente.py<br/>ModelClient<br/><b>única pieza que<br/>habla con Groq</b>"]
+            VAL["validacion.py<br/>esquema +<br/>campos ausentes"]
+            ESQ[["Hospital_Bill.json<br/>Discharge_Summary.json"]]
+            PRO["prompts.py<br/>PROMPT_VERSION"]
+        end
+        subgraph DATOS["Dataset y métricas"]
+            ING["ingesta.py<br/>dataset, imagen<br/>→ data URL"]
+            MET["metricas.py<br/>comparación<br/>y reportes"]
+        end
+    end
+
+    GROQ{{"API de Groq"}}
+
+    APP --> TAB
+    APP --> EXP
+    APP --> INT
+    APP --> ING
+    APP --> MET
+    SCR --> PIPE
+    SCR --> ING
+    SCR --> MET
+    INT --> REV
+    INT --> MSG
+    INT --> PIPE
+    INT -- "preguntas,<br/>campo adicional" --> CLI
+    TAB --> VAL
+    PIPE --> VAL
+    PIPE --> CLI
+    VAL --> ESQ
+    CLI --> ESQ
+    CLI --> PRO
+    CLI --> GROQ
+```
+
+Solo `cliente.py` tiene una flecha hacia Groq: ni la app, ni el script, ni el
+resto de módulos llaman a la API directamente. Los módulos se agrupan por
+función: la fachada que usa la app, el procesamiento de un documento, el apoyo
+a la edición y la exportación, y la lectura del dataset y las métricas. El
+detalle de cada uno está en la tabla siguiente.
 
 ## Componentes
 
