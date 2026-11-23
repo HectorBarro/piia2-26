@@ -11,11 +11,11 @@ La clasificación, la extracción de entidades y las preguntas sobre el document
 ## Motivación
 SDG indicó Groq como servicio de inferencia. No requiere GPU propia, y Groq ofrece modelos multimodales con salida en modo JSON. Sus modelos con visión están en *preview* y pueden retirarse, por eso el modelo se cambia sin tocar el código.
 
-Groq también ofrece salida ajustada a un esquema (`json_schema` en modo estricto), pero no la aplicó en nuestras peticiones con imagen: el 19-11-2026 rechazó con un 400 `json_validate_failed` 11 de 22 extracciones y 2 clasificaciones. Por eso no se confía en Groq para cumplir el esquema: se le pide un objeto JSON (`json_object`) y el esquema se valida en el cliente, que pide al modelo corregir la respuesta si no lo cumple (ver `README.md`, «Cómo funciona el procesamiento»).
+Groq también ofrece salida ajustada a un esquema (`json_schema` en modo estricto), pero no la aplicó en nuestras peticiones con imagen: el 19-11-2026 rechazó con un 400 `json_validate_failed` 11 de 22 extracciones y 2 clasificaciones. Por eso no se confía en Groq para cumplir el esquema: se le pide un objeto JSON (`json_object`) y el esquema se valida en el cliente, que pide al modelo corregir la respuesta si no lo cumple (ver el [ADR de validación en el cliente](validacion-esquema-en-cliente.md)).
 
 ## Alternativas consideradas
-- Inferencia local con vLLM y un modelo abierto. Aplazada: requiere una GPU que no tenemos. Queda como ampliación en `README.md`.
-- Otros proveedores de API. Rechazada: SDG indicó Groq.
+- Inferencia local con vLLM y un modelo abierto. Rechazada: requiere una GPU que no tenemos. `README.md` la deja fuera del proyecto, sin condiciones.
+- Otros proveedores de API con modelos de visión. No se evaluaron: `cliente.py` está escrito contra el SDK de Groq, su modo `json_object` y sus códigos de error (`json_validate_failed`, 429 con `retry-after`), que traduce `mensajes.py`. Cambiar de proveedor obligaría a rehacer el cliente y los mensajes, sin un beneficio medido que lo justifique. Además, SDG pidió Groq.
 - Fijar el nombre del modelo en el código. Rechazada: si Groq retira el modelo habría que cambiar código.
 
 ## Referencias

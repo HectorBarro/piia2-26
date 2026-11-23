@@ -6,13 +6,13 @@ state: Aceptado
 # ADR — Interfaz en Streamlit
 
 ## Decisión
-La herramienta interactiva es una app de Streamlit (`app.py`). La app solo contiene la interfaz: carga y visor de imágenes, edición de resultados y exportación. La ingesta, las llamadas al modelo y la validación viven en `src/`, para que el script de evaluación use exactamente el mismo código.
+La herramienta interactiva es una app de Streamlit (`src/app.py`). La app solo contiene la interfaz: carga y visor de imágenes, edición de resultados y exportación. La ingesta, las llamadas al modelo y la validación viven en `src/`, para que el script de evaluación use exactamente el mismo código.
 
 ## Motivación
 SDG propuso Streamlit en la reunión 1 y en la planificación. Permite construir la demo en Python, sin un frontend aparte, y trae lo que necesita la planificación: subida de ficheros, visor de imágenes, tablas editables y `st.download_button` para exportar.
 
 ## Alternativas consideradas
-- Gradio. Rechazada: SDG propuso Streamlit, y Gradio no aporta nada que la planificación necesite.
+- Gradio. Rechazada: cubre la subida de imágenes y las tablas, pero está orientado a demos de una función con entrada y salida. Las pestañas, el estado por documento durante la sesión y la revalidación al editar habría que montarlos a mano con `gr.Blocks` y `gr.State`, mientras que Streamlit los trae con `st.tabs`, `st.session_state` y el `on_change` de `st.data_editor`. Además, SDG propuso Streamlit.
 - Frontend web propio con una API aparte. Rechazada: cuesta semanas que no aportan al objetivo, que es demostrar el procesamiento de documentos.
 
 ## Referencias
@@ -43,7 +43,7 @@ def _model_client() -> ModelClient:
 
 
 resultado = procesar_documento(_model_client(), imagen)  # lógica en src/
-st.session_state["document_reviews"][clave] = resultado
+st.session_state["document_results"][clave] = resultado
 editado = st.data_editor(entities_to_tables(tipo, entidades)[TABLE_FIELDS])
 st.download_button("JSON", to_json_bytes(...), file_name="resultado.json")
 ```

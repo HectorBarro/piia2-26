@@ -90,7 +90,7 @@ La verdad de referencia original incluye campos que no aparecen en las imágenes
   Coste medido el 11-11 (0,80 y 4,00 USD por millón de tokens de entrada y de salida): 0,085 USD la muestra, unos 2,12 USD las 1000 imágenes. Es una cota inferior, porque las llamadas rechazadas no informan de sus tokens.
 
   Los CSV de cada ejecución se guardan en `output/`, que no se versiona. Las cifras de esta tabla están copiadas de ellos.
-- Ruff como linter y formateador ([ADR](decisions/linter-ruff.md)), y pytest para las pruebas.
+- Ruff como linter y formateador, y pytest para las pruebas.
 
 ## Arquitectura y decisiones
 
@@ -103,8 +103,10 @@ Las decisiones de implementación están documentadas como ADRs en [`decisions/`
 | [`modelo-via-api-groq.md`](decisions/modelo-via-api-groq.md) | Inferencia con la API de Groq, con el modelo leído de `GROQ_MODEL` y el esquema validado en el cliente |
 | [`esquemas-extraccion-documental.md`](decisions/esquemas-extraccion-documental.md) | Un JSON Schema por tipo documental, solo con los campos visibles, y una verdad de referencia limpia para evaluar |
 | [`interfaz-streamlit.md`](decisions/interfaz-streamlit.md) | Interfaz en Streamlit como capa fina sobre `src/` |
-| [`linter-ruff.md`](decisions/linter-ruff.md) | Ruff como único linter y formateador |
-| [`configuracion-asistentes.md`](decisions/configuracion-asistentes.md) | Dónde viven las instrucciones, skills y subagentes de los asistentes de IA |
+| [`validacion-esquema-en-cliente.md`](decisions/validacion-esquema-en-cliente.md) | Groq solo devuelve JSON; el esquema se valida en el cliente, que pide al modelo corregir la respuesta |
+| [`consulta-por-rutas-json.md`](decisions/consulta-por-rutas-json.md) | En la consulta, Groq solo elige rutas del JSON; el código lee los valores y redacta la respuesta |
+
+El repositorio del código tiene además dos ADRs sobre herramientas de desarrollo, no sobre la solución: Ruff como linter y formateador (`decisions/linter-ruff.md`) y dónde vive la configuración de los asistentes de IA (`decisions/configuracion-asistentes.md`).
 
 ## Estructura del repositorio
 

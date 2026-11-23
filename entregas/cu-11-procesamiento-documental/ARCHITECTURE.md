@@ -91,12 +91,15 @@ flowchart LR
     APP --> INT
     APP --> ING
     APP --> MET
+    APP --> MSG
     SCR --> PIPE
     SCR --> ING
     SCR --> MET
     INT --> REV
     INT --> MSG
     INT --> PIPE
+    INT --> ING
+    EXP --> TAB
     INT -- "preguntas,<br/>campo adicional" --> CLI
     TAB --> VAL
     PIPE --> VAL
@@ -117,9 +120,9 @@ detalle de cada uno está en la tabla siguiente.
 
 | Componente | Responsabilidad | Recibe | Produce |
 |---|---|---|---|
-| **App Streamlit** (`src/app.py`) | Solo la presentación. Carga la imagen, la muestra, lanza el procesamiento, enseña tipo, validación y entidades en tablas editables, deja marcar el resultado como validado, ofrece el chat, el campo adicional, las descargas y el último reporte de métricas. Lee `.env` al arrancar. | Imagen JPEG subida (solo `.jpg` y `.jpeg`, comprobado por el contenido con `ingesta.is_jpeg()`) o elegida del dataset, ediciones en tablas, preguntas. | Llamadas a `integraciones.py`, `tablas.py`, `exportacion.py`, `ingesta.py` y `metricas.py`. Pantallas y descargas. |
+| **App Streamlit** (`src/app.py`) | Solo la presentación. Carga la imagen, la muestra, lanza el procesamiento, enseña tipo, validación y entidades en tablas editables, deja marcar el resultado como validado, ofrece el chat, el campo adicional, las descargas y el último reporte de métricas. Lee `.env` al arrancar. | Imagen JPEG subida (solo `.jpg` y `.jpeg`, comprobado por el contenido con `ingesta.is_jpeg()`) o elegida del dataset, ediciones en tablas, preguntas. | Llamadas a `integraciones.py`, `tablas.py`, `exportacion.py`, `ingesta.py`, `mensajes.py` y `metricas.py`. Pantallas y descargas. |
 | **Estado de sesión** (`st.session_state`) | Guarda por documento el resultado del modelo con sus campos adicionales (`document_results`), la revisión humana con el JSON corregido, la marca de validación y la copia del último JSON validado (`document_reviews`), y el historial del chat (`chat_histories`). No hay base de datos: todo vive solo durante la sesión. | Lo que escribe la app. | Lo que lee la app al repintarse. |
-| **Integraciones** (`integraciones.py`) | Fachada entre la interfaz y la lógica. `procesar_documento()` convierte la imagen y llama a la tubería. `responder_pregunta()` y `extraer_campo_adicional()` llaman al cliente y comprueban la respuesta. Convierte los fallos en `ErrorProcesamiento` con mensaje en castellano. | Bytes de la imagen, pregunta, historial, JSON validado. | `ResultadoProcesamiento` (tipo, entidades, validación, latencias, error) y `ResultadoPregunta` (respuesta, evidencias, cambios). |
+| **Integraciones** (`integraciones.py`) | Fachada entre la interfaz y la lógica. `procesar_documento()` convierte la imagen y llama a la tubería. `responder_pregunta()` y `extraer_campo_adicional()` llaman al cliente y comprueban la respuesta. Los fallos del procesamiento vuelven traducidos al castellano por `mensajes.py`; los de la consulta y el campo adicional salen como `ErrorProcesamiento` con la etapa y el texto del error, que puede incluir el original de Groq. | Bytes de la imagen, pregunta, historial, JSON validado. | `ResultadoProcesamiento` (tipo, entidades, validación, latencias, error) y `ResultadoPregunta` (respuesta, evidencias, cambios). |
 | **Tubería** (`pipeline.py`) | Procesa un documento en serie: clasifica, extrae con el esquema del tipo y valida. Registra en qué etapa falla (`classification` o `extraction`). La usan la app y el script, así que los dos procesan igual. | `ModelClient` y la imagen como *data URL*. | `DocumentResult`. |
 | **Cliente del modelo** (`cliente.py`) | La única pieza que habla con Groq. Lee `GROQ_API_KEY` y `GROQ_MODEL` del entorno, pide `json_object` con `temperature=0`, reintenta los fallos transitorios (hasta 5 intentos, respetando `retry-after`) y, si la respuesta no cumple el esquema, le devuelve al modelo sus errores para que la corrija (hasta 3 llamadas). Mide latencia y tokens. | Mensajes de `prompts.py` y el esquema que debe cumplir la respuesta. | `ModelResponse` (contenido, latencia, tokens, intentos) o `ModelError` (tipo de fallo, código HTTP, código de error de Groq y, si lo hay, el texto rechazado). |
 | **Prompts** (`prompts.py`) | Construye las peticiones: clasificación (`bill`, `discharge_summary`), extracción con el esqueleto del esquema, preguntas y campo adicional. Fija `PROMPT_VERSION` para poder comparar evaluaciones. | Imagen, tipo documental, contexto JSON, pregunta. | Lista de mensajes y esquema de la respuesta. |
@@ -214,5 +217,5 @@ romper el esquema.
 | [Inferencia con la API de Groq](decisions/modelo-via-api-groq.md) | El modelo es un servicio externo detrás de un único cliente. El esquema se valida en el cliente, no en Groq. |
 | [Esquemas de extracción documental](decisions/esquemas-extraccion-documental.md) | Un esquema por tipo, que comparten cliente, validación, tablas, exportación y evaluación. Por eso existe la verdad limpia. |
 | [Interfaz en Streamlit](decisions/interfaz-streamlit.md) | La app es una capa fina sobre `src/`, de modo que el script de evaluación ejecuta el mismo código. |
-| [Ruff como linter y formateador](decisions/linter-ruff.md) | Un único estilo y un único comando de comprobación en todo `src/`, `script/` y `tests/`. |
-| [Configuración de los asistentes de IA](decisions/configuracion-asistentes.md) | Dónde leen las reglas del repositorio los asistentes que lo modifican. |
+| [Validar el esquema en el cliente](decisions/validacion-esquema-en-cliente.md) | El cliente es el único punto donde se garantiza el esquema: pide `json_object`, valida y pide corregir. Por eso las tablas, la exportación y la evaluación pueden contar con sus claves. |
+| [Consulta por rutas JSON](decisions/consulta-por-rutas-json.md) | La consulta no reenvía la imagen: Groq elige rutas, `integraciones.py` lee los valores y `revision.py` señala los datos corregidos. |
