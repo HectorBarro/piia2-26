@@ -17,7 +17,7 @@ SDG propuso Streamlit en la reunión 1 y en la planificación. Permite construir
 
 ## Referencias
 - https://streamlit.io/
-- Acta de la reunión 1 con SDG (08-10-2026, `docs/Reuniones/Reunión1.docx`, no publicada). Su primera línea es «Streamlit - https://streamlit.io/».
+- Acta de la reunión 1 con SDG (08-10-2026, `docs/Reuniones/Reunión1.docx`, no publicada). Su primera línea propone Streamlit, con el enlace a su web.
 - Acta del 22-10-2026: «Poner las cosas en formato tabla» y «Hacer un reporte de métricas de todos los documentos en otra pestaña». De ahí salen `st.data_editor` y la pestaña «Reporte de métricas».
 - Planificación acordada con SDG (`docs/Planificación.pdf`, no publicada). En la semana 2: «Crear la interfaz gráfica principal en Streamlit (app.py)». En la semana 4: «Exportación multiformato: añadir botones para descargar la información procesada en Excel (.xlsx), CSV y JSON (st.download_button)».
 - Componentes que usa la app, con su documentación oficial:
@@ -32,7 +32,7 @@ SDG propuso Streamlit en la reunión 1 y en la planificación. Permite construir
   | Resultados por documento | `st.session_state` | https://docs.streamlit.io/develop/api-reference/caching-and-state/st.session_state |
   | Un solo cliente de Groq | `st.cache_resource` | https://docs.streamlit.io/develop/api-reference/caching-and-state/st.cache_resource |
 
-- Diseño de la interfaz: `docs/Diseño Interfaz.excalidraw`.
+- Boceto inicial de la interfaz (`docs/Diseño Interfaz.excalidraw`, no publicado): lista de documentos, imagen, tipo de documento («Clasificación»), JSON de salida del modelo, un campo de texto para preguntas, un botón «Guardar» y una pestaña de métricas.
 
 Patrón que sigue `src/app.py`: la app solo llama a funciones de `src/` y pinta el resultado. Streamlit vuelve a ejecutar el script entero con cada interacción, así que lo caro (cliente, dataset) se guarda en caché y los resultados en `st.session_state`.
 

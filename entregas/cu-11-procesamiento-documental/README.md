@@ -141,7 +141,7 @@ En orden de ejecución; cada una depende de las anteriores.
 | [`validacion-extraccion.md`](specs/validacion-extraccion.md) | Validar el JSON de extracción contra su esquema y listar los campos ausentes | 2 | Hecha |
 | [`prototipo-streamlit.md`](specs/prototipo-streamlit.md) | Primera versión de la app: cargar, procesar y ver resultados | 3 | Hecha |
 | [`edicion-exportacion.md`](specs/edicion-exportacion.md) | Editar y validar los resultados, y exportarlos a JSON, CSV y Excel | 4 | Hecha |
-| [`evaluacion-metricas.md`](specs/evaluacion-metricas.md) | Repetir la prueba del modelo con los esquemas revisados y confirmarlo o descartarlo, reducir la prueba y la evaluación a 24 documentos por la cuota y mostrar el último reporte en la app | 2 → 5 | Pendiente: falta el punto 4 (repetir la medición) |
+| [`evaluacion-metricas.md`](specs/evaluacion-metricas.md) | Repetir la prueba del modelo con los esquemas revisados y confirmarlo o descartarlo, reducir la prueba y la evaluación a 24 documentos por la cuota y mostrar el último reporte en la app | 2 → 5 | Pendiente: falta el umbral de coste del veredicto y el punto 4 (repetir la medición) |
 | [`consulta-documento.md`](specs/consulta-documento.md) | Responder las preguntas con el último JSON validado y avisar de los datos corregidos por una persona | 4 | Hecha |
 
 La consulta al documento y los campos adicionales se hicieron en la semana 4 sin spec; `consulta-documento.md` solo cubre lo que se añade sobre ellos.

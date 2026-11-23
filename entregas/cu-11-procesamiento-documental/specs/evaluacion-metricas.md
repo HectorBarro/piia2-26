@@ -26,7 +26,12 @@ Se reutiliza sin cambios salvo lo que se dice en «Qué construir»:
 
 ## Qué construir
 
-> **Estado (23-11-2026):** los puntos 1 a 3 ya están en el código: `--per-type` con 12 por defecto, `METRICS_FIELDS`, `summarize_metrics()` y `load_latest_metrics()` en `metricas.py`, y la sección «Última evaluación» en la app. Donde los puntos dicen «hoy», describen el código anterior a ese cambio. Falta el punto 4. El intento del 19-11-2026 a las 18:25, con `PROMPT_VERSION` 1.2, se cortó por la cuota de Groq tras 8 facturas, así que no cuenta como medición (ver `README.md`, «Tecnologías»).
+> **Estado (23-11-2026):** los puntos 1 a 3 ya están en el código: `--per-type` con 12 por defecto, `METRICS_FIELDS`, `summarize_metrics()` y `load_latest_metrics()` en `metricas.py`, y la sección «Última evaluación» en la app. Donde los puntos dicen «hoy», describen el código anterior a ese cambio. Faltan dos cosas:
+> - El umbral de coste de los criterios de «Prueba del modelo». El veredicto del script solo mira la clasificación, los JSON válidos y la latencia p95, y siempre da «confirmado» o «descartado». Falta `MAX_DATASET_COST_USD` (10 USD), el veredicto «sin confirmar: falta el coste» cuando no se pasan precios, y sus pruebas en `tests/test_evaluar_metricas.py`.
+> - El punto 4.
+>
+> El intento del 19-11-2026 a las 18:25, con `PROMPT_VERSION` 1.2, se cortó por la cuota de Groq tras 8 facturas, así que no cuenta como medición (ver `README.md`, «Tecnologías»).
+
 Cuatro cambios, en este orden:
 
 1. **Muestra de 24 documentos.** `script/evaluar_metricas.py` procesa por defecto 12 facturas y 12 informes de alta, elegidos con `sample_documents(load_dataset(), per_type=12, seed=42)`. Un argumento opcional `--per-type N` (entero mayor que 0) cambia el número de cada tipo sin tocar el código. Nada más cambia en el script: sigue llamando a Groq una vez por documento, escribiendo los dos CSV con las mismas columnas e imprimiendo los dos resúmenes y el veredicto al terminar.

@@ -126,10 +126,13 @@ comprobarse con revisión humana.
 
 ## Referencias
 
-- [`src/Hospital_Bill.json`](https://github.com/HectorBarro/PIIA-2-cu-11/blob/main/src/Hospital_Bill.json)
-- [`src/Discharge_Summary.json`](https://github.com/HectorBarro/PIIA-2-cu-11/blob/main/src/Discharge_Summary.json)
-- [`specs/evaluacion-metricas.md`](../specs/evaluacion-metricas.md)
-- [`Notebooks/limpieza_datos.ipynb`](https://github.com/HectorBarro/PIIA-2-cu-11/blob/main/Notebooks/limpieza_datos.ipynb)
+- `src/Hospital_Bill.json` y `src/Discharge_Summary.json`: los dos esquemas,
+  en el repositorio del código, que es privado. Más abajo hay un fragmento, y
+  los campos que se quitan de cada uno están en la tabla de «Decisión».
+- `Notebooks/limpieza_datos.ipynb`, en el mismo repositorio: genera la verdad
+  limpia de `data/processed/` quitando esos campos.
+- [`specs/evaluacion-metricas.md`](../specs/evaluacion-metricas.md): cómo se
+  compara la extracción con la verdad limpia.
 - Especificación de JSON Schema Draft 2020-12:
   https://json-schema.org/draft/2020-12
 - Guía de `null`, `required` y `additionalProperties`:
