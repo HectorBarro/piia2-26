@@ -3,7 +3,7 @@
 > Proyecto Integrador de IA II · Grado en Inteligencia Artificial · USC · Curso 2026/27
 > Caso de uso CU-11, propuesto por SDG Group
 
-> **Estado (23-11-2026):** están hechos la ingesta del dataset, los prompts, el cliente de Groq, la validación y la tubería de un documento, con sus pruebas. La app muestra el tipo, la validación y las entidades en tablas editables, deja marcar el resultado como validado por una persona y responde preguntas sobre el documento con el último JSON validado, avisando de los datos que una persona ha corregido, y exporta el resultado corregido a JSON, CSV y Excel. **El modelo está sin confirmar.** La versión actual de los prompts (`PROMPT_VERSION` 1.2) solo se ha medido con 8 facturas y ningún informe de alta, porque la cuota diaria de Groq cortó la prueba. Falta repetir la medición completa (punto 4 de [`specs/evaluacion-metricas.md`](specs/evaluacion-metricas.md)). Las mediciones hechas hasta ahora están en «Tecnologías».
+> **Estado (23-11-2026):** están hechos la ingesta del dataset, los prompts, el cliente de Groq, la validación y la tubería de un documento, con sus pruebas. La app muestra el tipo, la validación y las entidades en tablas editables, deja marcar el resultado como validado por una persona y responde preguntas sobre el documento con el último JSON validado, avisando de los datos que una persona ha corregido, y exporta el resultado corregido a JSON, CSV y Excel. El modelo es `qwen/qwen3.8-27b`, el único de Groq que acepta imágenes y salida en modo JSON. La versión actual de los prompts (`PROMPT_VERSION` 1.2) solo se ha medido con 8 facturas y ningún informe de alta, porque la cuota diaria de Groq cortó la prueba. Falta repetir la medición completa para saber si cumple los objetivos de calidad (punto 4 de [`specs/evaluacion-metricas.md`](specs/evaluacion-metricas.md)). Las mediciones hechas hasta ahora están en «Tecnologías».
 
 ## Qué es
 
@@ -75,9 +75,9 @@ La verdad de referencia original incluye campos que no aparecen en las imágenes
 
 - Python 3.11 o superior.
 - Streamlit para la interfaz ([ADR](decisions/interfaz-streamlit.md)).
-- API de Groq para el modelo multimodal ([ADR](decisions/modelo-via-api-groq.md)). Modelo candidato: `qwen/qwen3.8-27b`, que acepta imágenes y salida en modo JSON. Es un modelo en *preview* en Groq y puede retirarse sin aviso. **Sin confirmar.**
+- API de Groq para el modelo multimodal ([ADR](decisions/modelo-via-api-groq.md)). Modelo: `qwen/qwen3.8-27b`, el único de Groq que acepta imágenes y salida en modo JSON, así que no hay otro entre el que elegir. Es un modelo en *preview* y puede retirarse sin aviso; por eso se lee de `GROQ_MODEL`.
 
-  **Qué se ha medido.** Tres ejecuciones de `script/evaluar_metricas.py`, todas con `temperature=0`. Umbrales de [`specs/evaluacion-metricas.md`](specs/evaluacion-metricas.md): clasificación ≥ 95 %, JSON válidos ≥ 90 %, latencia p95 ≤ 10 s.
+  **Qué se ha medido.** Tres ejecuciones de `script/evaluar_metricas.py`, todas con `temperature=0`. Objetivos de calidad de [`specs/evaluacion-metricas.md`](specs/evaluacion-metricas.md): clasificación ≥ 95 %, JSON válidos ≥ 90 %, latencia p95 ≤ 10 s.
 
   | Fecha | `PROMPT_VERSION` | Muestra | Llegaron al modelo | Clasificación | JSON válidos | Latencia por imagen | Qué la cortó o la invalida |
   |---|---|---|---|---|---|---|---|
@@ -85,7 +85,7 @@ La verdad de referencia original incluye campos que no aparecen en las imágenes
   | 19-11-2026, 12:24 | anterior a 1.2: pedía `json_schema` estricto (el CSV no registra la versión exacta) | 24 (12 + 12) | 24 | 22 / 24 (92 %) | 11 / 24 (46 %): 5 facturas y 6 informes de alta | media 2,38 s, p95 3,25 s (11 imágenes) | Groq rechazó con un 400 `json_validate_failed` 11 extracciones y 2 clasificaciones. Esto llevó a la versión 1.2. |
   | 19-11-2026, 18:25 | **1.2 (la actual)** | 24 (12 + 12) | **8, todas facturas** | 8 / 8 | 7 / 8 | media 2,92 s (7 imágenes) | La cuota (429) cortó la prueba: 16 documentos, entre ellos los 12 informes de alta, no llegaron al modelo, y la extracción de la octava factura tampoco. |
 
-  **Conclusión.** Ninguna ejecución sirve para confirmar o descartar el modelo. Las dos primeras usaban una forma de pedir la respuesta que ya no existe. La única con la versión actual (1.2) midió 8 facturas, así que no dice nada de los informes de alta y es demasiado pequeña para comparar con los umbrales. Lo único que muestra es que en esas 8 facturas no hubo ningún rechazo `json_validate_failed`, que era el fallo principal de las ejecuciones anteriores. Falta repetir la medición completa con la versión 1.2 y la cuota diaria sin gastar.
+  **Conclusión.** Ninguna ejecución sirve para saber si el modelo cumple los objetivos. Las dos primeras usaban una forma de pedir la respuesta que ya no existe. La única con la versión actual (1.2) midió 8 facturas, así que no dice nada de los informes de alta y es demasiado pequeña para comparar con los objetivos. Lo único que muestra es que en esas 8 facturas no hubo ningún rechazo `json_validate_failed`, que era el fallo principal de las ejecuciones anteriores. Falta repetir la medición completa con la versión 1.2 y la cuota diaria sin gastar.
 
   Coste medido el 11-11 (0,80 y 4,00 USD por millón de tokens de entrada y de salida): 0,085 USD la muestra, unos 2,12 USD las 1000 imágenes. Es una cota inferior, porque las llamadas rechazadas no informan de sus tokens.
 
@@ -143,7 +143,7 @@ En orden de ejecución; cada una depende de las anteriores.
 | [`validacion-extraccion.md`](specs/validacion-extraccion.md) | Validar el JSON de extracción contra su esquema y listar los campos ausentes | 2 | Hecha |
 | [`prototipo-streamlit.md`](specs/prototipo-streamlit.md) | Primera versión de la app: cargar, procesar y ver resultados | 3 | Hecha |
 | [`edicion-exportacion.md`](specs/edicion-exportacion.md) | Editar y validar los resultados, y exportarlos a JSON, CSV y Excel | 4 | Hecha |
-| [`evaluacion-metricas.md`](specs/evaluacion-metricas.md) | Repetir la prueba del modelo con los esquemas revisados y confirmarlo o descartarlo, reducir la prueba y la evaluación a 24 documentos por la cuota y mostrar el último reporte en la app | 2 → 5 | Pendiente: falta el umbral de coste del veredicto y el punto 4 (repetir la medición) |
+| [`evaluacion-metricas.md`](specs/evaluacion-metricas.md) | Repetir la prueba del modelo con los esquemas revisados y comprobar si cumple los objetivos de calidad, reducir la prueba y la evaluación a 24 documentos por la cuota y mostrar el último reporte en la app | 2 → 5 | Pendiente: falta el objetivo de coste en el script y el punto 4 (repetir la medición) |
 | [`consulta-documento.md`](specs/consulta-documento.md) | Responder las preguntas con el último JSON validado y avisar de los datos corregidos por una persona | 4 | Hecha |
 
 La consulta al documento y los campos adicionales se hicieron en la semana 4 sin spec; `consulta-documento.md` solo cubre lo que se añade sobre ellos.
@@ -230,7 +230,7 @@ Procesa 12 facturas y 12 informes de alta (muestra fija, semilla 42); `--per-typ
 - `prueba_modelo_<AAAAMMDD-HHMM>.csv`: tipo predicho, validez del JSON, latencia de cada llamada, tokens, intentos (incluidas las llamadas que piden corregir el formato), campos ausentes y el texto en bruto de la extracción.
 - `metricas_<AAAAMMDD-HHMMSS-ffffff>.csv`: clasificación, validez del JSON, conteos de campos frente a la referencia, errores y tiempo total. No guarda los valores de referencia ni los extraídos.
 
-Al terminar imprime el resumen de las métricas y el de la prueba: acierto en clasificación, JSON válidos, latencia, errores por etapa, coste estimado y el veredicto sobre el modelo. Los precios, en USD por millón de tokens, son opcionales y van juntos: dependen del modelo y Groq los cambia. Sin ellos no se calcula el coste.
+Al terminar imprime el resumen de las métricas y el de la prueba: acierto en clasificación, JSON válidos, latencia, errores por etapa, coste estimado y si se cumplen los objetivos de calidad. Los precios, en USD por millón de tokens, son opcionales y van juntos: dependen del modelo y Groq los cambia. Sin ellos no se calcula el coste.
 
 Gasta cuota de Groq y envía imágenes: son 48 llamadas con la muestra por defecto. En el nivel `on_demand` el límite es de 200 000 tokens al día; si se agota a mitad de la ejecución, los documentos restantes quedan como errores con un 429, y hay que descontarlos al leer el resumen.
 

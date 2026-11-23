@@ -134,7 +134,7 @@ detalle de cada uno está en la tabla siguiente.
 | **Exportación** (`exportacion.py`) | Genera en memoria los ficheros de descarga del resultado corregido. | Nombre del documento, tipo, entidades editadas y marca de validación. | Bytes de `.json`, `.csv` y `.xlsx`. |
 | **Ingesta** (`ingesta.py`) | Lee las imágenes de `data/raw/` con su verdad limpia de `data/processed/`, toma muestras equilibradas por tipo con semilla fija (el script usa 42) y convierte imágenes a *data URL*. | Rutas del dataset. | Lista de `Document` y *data URLs*. |
 | **Métricas** (`metricas.py`) | Compara la extracción con la verdad limpia campo a campo, resume los reportes y localiza el último de `output/`. | JSON de referencia y predicho, CSV de `output/`. | `ExtractionMetrics`, `MetricsSummary`, `MetricsReport`. |
-| **Evaluación** (`script/evaluar_metricas.py`) | Procesa una muestra del dataset con la misma tubería que la app, llamando a Groq una vez por documento. Guarda dos CSV e imprime un resumen con el coste estimado y el veredicto sobre el modelo. | Muestra de `ingesta.py`, precios por millón de tokens. | `output/metricas_*.csv` y `output/prueba_modelo_*.csv`. |
+| **Evaluación** (`script/evaluar_metricas.py`) | Procesa una muestra del dataset con la misma tubería que la app, llamando a Groq una vez por documento. Guarda dos CSV e imprime un resumen con el coste estimado y si se cumplen los objetivos de calidad. | Muestra de `ingesta.py`, precios por millón de tokens. | `output/metricas_*.csv` y `output/prueba_modelo_*.csv`. |
 | **Limpieza de la verdad** (`Notebooks/limpieza_datos.ipynb`) | Quita de la verdad original los campos que no se ven en las imágenes de su tipo. Se ejecuta una vez y cada vez que cambia un esquema. | CSV de `data/raw/`, que no se modifica. | CSV de `data/processed/`. |
 | **API de Groq** (externa) | Ejecuta el modelo multimodal. | Mensajes con la imagen y el prompt. | Objeto JSON y uso de tokens, o un error HTTP. |
 
@@ -204,7 +204,7 @@ romper el esquema.
 3. `metricas.compare_extraction()` compara cada resultado con su verdad limpia.
    El script escribe en `output/` un CSV de métricas y otro de la prueba del
    modelo (clasificación, JSON válidos, latencias, tokens e intentos). Al
-   terminar imprime el coste estimado y el veredicto: el modelo se confirma si
+   terminar imprime el coste estimado y si se cumplen los objetivos de calidad:
    la clasificación acierta al menos el 95 %, los JSON válidos son al menos el
    90 % y la latencia p95 no pasa de 10 s.
 4. La app lee el último reporte con `metricas.load_latest_metrics()` y lo

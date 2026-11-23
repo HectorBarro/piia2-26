@@ -6,7 +6,7 @@ state: Aceptado
 # ADR — Inferencia con la API de Groq
 
 ## Decisión
-La clasificación, la extracción de entidades y las preguntas sobre el documento se resuelven llamando a la API de Groq. El nombre del modelo se lee de la variable de entorno `GROQ_MODEL` y la clave de `GROQ_API_KEY`. Este ADR no fija el modelo: el candidato está en `README.md` y se confirma con `specs/evaluacion-metricas.md`.
+La clasificación, la extracción de entidades y las preguntas sobre el documento se resuelven llamando a la API de Groq. El nombre del modelo se lee de la variable de entorno `GROQ_MODEL` y la clave de `GROQ_API_KEY`. El modelo es `qwen/qwen3.8-27b` (`README.md`, «Tecnologías»): es el único de Groq que acepta imágenes y salida en modo JSON, así que no hay otro entre el que elegir. `specs/evaluacion-metricas.md` mide si cumple los objetivos de calidad, pero no decide si se usa.
 
 ## Motivación
 SDG indicó Groq como servicio de inferencia. No requiere GPU propia, y Groq ofrece modelos multimodales con salida en modo JSON. Sus modelos con visión están en *preview* y pueden retirarse, por eso el modelo se cambia sin tocar el código.
@@ -16,7 +16,8 @@ Groq también ofrece salida ajustada a un esquema (`json_schema` en modo estrict
 ## Alternativas consideradas
 - Inferencia local con vLLM y un modelo abierto. Rechazada: requiere una GPU que no tenemos. `README.md` la deja fuera del proyecto, sin condiciones.
 - Otros proveedores de API con modelos de visión. No se evaluaron: `cliente.py` está escrito contra el SDK de Groq, su modo `json_object` y sus códigos de error (`json_validate_failed`, 429 con `retry-after`), que traduce `mensajes.py`. Cambiar de proveedor obligaría a rehacer el cliente y los mensajes, sin un beneficio medido que lo justifique. Además, SDG pidió Groq.
-- Fijar el nombre del modelo en el código. Rechazada: si Groq retira el modelo habría que cambiar código.
+- Fijar el nombre del modelo en el código. Rechazada: si Groq retira el modelo o publica otro con visión habría que cambiar código.
+- Elegir otro modelo de Groq. No hay alternativa: `qwen/qwen3.8-27b` es el único que acepta imágenes y salida en modo JSON.
 
 ## Referencias
 - Visión en Groq (formato de la imagen como *data URL* y límites de tamaño): https://console.groq.com/docs/vision
@@ -33,7 +34,7 @@ Groq también ofrece salida ajustada a un esquema (`json_schema` en modo estrict
   | 19-11-2026, 12:24 | `json_schema` estricto | 24 | 11 de 22 extracciones y 2 de 24 clasificaciones | 11 / 24 |
   | 19-11-2026, 18:25 (`PROMPT_VERSION` 1.2) | `json_object` y validación en el cliente | 8 facturas (cortada por la cuota, 429) | 0 | 7 / 8 |
 
-  Uno de los rechazos de clasificación traía un `document_type` fuera del `enum`. Con el modo estricto aplicado de verdad, eso sería imposible: por eso se concluye que Groq no lo aplicaba. La segunda ejecución es demasiado pequeña para confirmar el modelo, pero no tuvo ningún rechazo.
+  Uno de los rechazos de clasificación traía un `document_type` fuera del `enum`. Con el modo estricto aplicado de verdad, eso sería imposible: por eso se concluye que Groq no lo aplicaba. La segunda ejecución es demasiado pequeña para saber si el modelo cumple los objetivos, pero no tuvo ningún rechazo.
 
 Cómo se llama a Groq en `src/procesamiento_documental/cliente.py`. Es la única llamada del proyecto. El SDK no reintenta (`max_retries=0`): los reintentos los hace el cliente, para medir bien la latencia y respetar `retry-after`.
 

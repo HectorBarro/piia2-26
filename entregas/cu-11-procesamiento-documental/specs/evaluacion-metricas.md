@@ -1,5 +1,5 @@
 ---
-description: Reduce la prueba del modelo de Groq y la evaluación de métricas a 24 documentos por la cuota, repite la prueba con los esquemas revisados para confirmar o descartar el modelo, lleva el resumen de métricas a src/ y muestra el último reporte en la pestaña «Reporte de métricas».
+description: Reduce la prueba del modelo de Groq y la evaluación de métricas a 24 documentos por la cuota, repite la prueba con los esquemas revisados para comprobar si el modelo cumple los objetivos de calidad, lleva el resumen de métricas a src/ y muestra el último reporte en la pestaña «Reporte de métricas».
 state: Pendiente
 ---
 
@@ -18,7 +18,7 @@ Se reutiliza sin cambios salvo lo que se dice en «Qué construir»:
   `DocumentResult` guarda el tipo predicho, las dos `ModelResponse` (o `None` si la llamada no se hizo o falló), el `ValidationResult` (o `None` si la extracción no se hizo o falló) y, si algo falló, el error y la etapa (`classification` o `extraction`). Ningún fallo del modelo sale como excepción. La app de `specs/prototipo-streamlit.md` la reutiliza.
 - `tests/conftest.py` tiene `_client()` y `_completion()`, y `tests/test_pipeline.py` cubre la tubería sin red.
 - `script/evaluar_metricas.py` es el único script de medición. Procesa cada documento **una sola vez** con `process_document()` y, con ese mismo resultado, escribe dos CSV en `output/`:
-  - `prueba_modelo_<AAAAMMDD-HHMM>.csv`, para confirmar o descartar el modelo;
+  - `prueba_modelo_<AAAAMMDD-HHMM>.csv`, para comprobar si el modelo cumple los objetivos de calidad;
   - `metricas_<AAAAMMDD-HHMMSS-ffffff>.csv`, con la comparación frente a la verdad de referencia.
 
   `evaluate_document(client, document) -> DocumentRows` devuelve las dos filas de un documento (`metrics` y `model_test`), construidas con `metrics_row()` y `model_test_row()`. Ya usa 12 imágenes por tipo (punto 1 de «Qué construir»). Antes había un `script/prueba_modelo.py` aparte que volvía a llamar a Groq por la misma muestra; se ha quitado para no gastar la cuota dos veces.
@@ -27,14 +27,14 @@ Se reutiliza sin cambios salvo lo que se dice en «Qué construir»:
 ## Qué construir
 
 > **Estado (23-11-2026):** los puntos 1 a 3 ya están en el código: `--per-type` con 12 por defecto, `METRICS_FIELDS`, `summarize_metrics()` y `load_latest_metrics()` en `metricas.py`, y la sección «Última evaluación» en la app. Donde los puntos dicen «hoy», describen el código anterior a ese cambio. Faltan dos cosas:
-> - El umbral de coste de los criterios de «Prueba del modelo». El veredicto del script solo mira la clasificación, los JSON válidos y la latencia p95, y siempre da «confirmado» o «descartado». Falta `MAX_DATASET_COST_USD` (10 USD), el veredicto «sin confirmar: falta el coste» cuando no se pasan precios, y sus pruebas en `tests/test_evaluar_metricas.py`.
+> - El objetivo de coste de los criterios de «Prueba del modelo». El script solo mira la clasificación, los JSON válidos y la latencia p95, y siempre da «cumplidos» o «no cumplidos». Falta `MAX_DATASET_COST_USD` (10 USD), el resultado «sin comprobar: falta el coste» cuando no se pasan precios, y sus pruebas en `tests/test_evaluar_metricas.py`.
 > - El punto 4.
 >
 > El intento del 19-11-2026 a las 18:25, con `PROMPT_VERSION` 1.2, se cortó por la cuota de Groq tras 8 facturas, así que no cuenta como medición (ver `README.md`, «Tecnologías»).
 
 Cuatro cambios, en este orden:
 
-1. **Muestra de 24 documentos.** `script/evaluar_metricas.py` procesa por defecto 12 facturas y 12 informes de alta, elegidos con `sample_documents(load_dataset(), per_type=12, seed=42)`. Un argumento opcional `--per-type N` (entero mayor que 0) cambia el número de cada tipo sin tocar el código. Nada más cambia en el script: sigue llamando a Groq una vez por documento, escribiendo los dos CSV con las mismas columnas e imprimiendo los dos resúmenes y el veredicto al terminar.
+1. **Muestra de 24 documentos.** `script/evaluar_metricas.py` procesa por defecto 12 facturas y 12 informes de alta, elegidos con `sample_documents(load_dataset(), per_type=12, seed=42)`. Un argumento opcional `--per-type N` (entero mayor que 0) cambia el número de cada tipo sin tocar el código. Nada más cambia en el script: sigue llamando a Groq una vez por documento, escribiendo los dos CSV con las mismas columnas e imprimiendo los dos resúmenes y si se cumplen los objetivos al terminar.
 
 2. **Resumen y lectura del reporte de métricas en `src/`.** En `src/procesamiento_documental/metricas.py` se añaden:
    - `METRICS_FIELDS`, la lista de columnas del CSV de métricas, que hoy es `FIELDS` en `script/evaluar_metricas.py`. El script pasa a importarla.
@@ -50,12 +50,12 @@ Cuatro cambios, en este orden:
    - muestra la tabla por documento con `st.dataframe`;
    - si `load_latest_metrics()` devuelve `None`, muestra un aviso con el comando `python script/evaluar_metricas.py`; si lanza `ValueError`, muestra el error. En ninguno de los dos casos se rompe la pestaña.
 
-4. **Repetir la medición con los esquemas revisados**, con una sola ejecución de `script/evaluar_metricas.py`, y anotar el veredicto (ver criterios).
+4. **Repetir la medición con los esquemas revisados**, con una sola ejecución de `script/evaluar_metricas.py`, y anotar si se cumplen los objetivos (ver criterios).
 
 El resumen imprime `PROMPT_VERSION`, que identifica los prompts con los que se ha medido. Es la constante `PROMPT_VERSION` de `src/procesamiento_documental/prompts.py` (hoy `"1.2"`). Nadie la calcula: se sube a mano, en el mismo cambio, cada vez que se modifica un prompt de clasificación o de extracción o la forma de pedir la respuesta a Groq. Esta spec no cambia los prompts, así que no la sube.
 
 ## Por qué
-El modelo candidato (`qwen/qwen3.8-27b`) está en *preview*. Antes de dar por buena la app hay que medir, con una muestra, si lee nuestros documentos y devuelve un JSON utilizable en un tiempo y con un coste razonables. La primera prueba (11-11-2026) quedó incompleta y se hizo con esquemas que pedían campos de la verdad de referencia que no aparecen en las imágenes; esos campos ya se han quitado, así que hay que repetirla.
+El modelo (`qwen/qwen3.8-27b`) es el único de Groq que acepta imágenes y salida en modo JSON, así que la medición no decide si se usa: dice cuánto se puede confiar en él. Hay que medir, con una muestra, si lee nuestros documentos y devuelve un JSON utilizable en un tiempo y con un coste razonables, para saber cuánto trabajo recae en la revisión humana de la app. La primera prueba (11-11-2026) quedó incompleta y se hizo con esquemas que pedían campos de la verdad de referencia que no aparecen en las imágenes; esos campos ya se han quitado, así que hay que repetirla.
 
 La cuota del modelo de Groq no da para procesar los 40 documentos de la muestra anterior: en la prueba del modelo del 11-11-2026, las 14 últimas imágenes no llegaron al modelo por el límite diario, y en la evaluación de métricas de ese mismo día 18 de los 40 documentos fallaron por cuota y 9 por errores de la API, y solo 13 llegaron a compararse con la referencia. Las dos mediciones procesaban la misma muestra con la misma tubería, y cada una llamaba a Groq por su cuenta. Con una sola ejecución y 24 documentos (48 llamadas en lugar de 160), la medición cabe en la cuota y sus cifras significan algo.
 
@@ -69,7 +69,7 @@ El resultado de la evaluación solo se ve hoy en la consola de quien ejecuta el 
 - Si la clasificación falla (error de la API o tipo inválido), no se hace la extracción y la fila queda marcada con el error.
 - Un error en una imagen no detiene el script: se anota en su fila y se sigue con la siguiente. Solo se detiene si faltan las variables de entorno.
 - Cada documento se procesa una sola vez por ejecución: las dos filas salen del mismo `DocumentResult`. No se vuelve a tener un script aparte para la prueba del modelo.
-- El precio por millón de tokens de entrada y de salida, en USD, se pasa como argumento (`--precio-entrada`, `--precio-salida`), porque depende del modelo y Groq lo cambia. Los dos son opcionales, pero van juntos: sin ellos el script no calcula el coste y lo dice en el resumen; con solo uno, termina con un error de argumentos. Sin precios el coste no se puede comprobar, así que el veredicto no puede ser «confirmado» (ver criterios).
+- El precio por millón de tokens de entrada y de salida, en USD, se pasa como argumento (`--precio-entrada`, `--precio-salida`), porque depende del modelo y Groq lo cambia. Los dos son opcionales, pero van juntos: sin ellos el script no calcula el coste y lo dice en el resumen; con solo uno, termina con un error de argumentos. Sin precios el coste no se puede comprobar, así que los objetivos no pueden darse por cumplidos (ver criterios).
 - Los scripts solo leen de `data/raw/` (imágenes) y de `data/processed/` (verdad de referencia).
 - Mostrar el reporte no llama a Groq ni procesa documentos.
 - El CSV de métricas sigue sin guardar valores extraídos ni de referencia, como hasta ahora.
@@ -85,7 +85,7 @@ El resultado de la evaluación solo se ve hoy en la consola de quien ejecuta el 
 - Esa única ejecución deja los dos CSV, con una fila por documento cada uno, y llama a Groq una sola vez por documento (clasificación y extracción).
 - Deja en `output/prueba_modelo_<AAAAMMDD-HHMM>.csv` una fila por imagen (24 por defecto) con estas columnas: `filename`, `real_type`, `predicted_type`, `json_valid`, `error_stage`, `error`, `classification_latency_s`, `extraction_latency_s`, `input_tokens` y `output_tokens` (suma de las dos llamadas), `attempts` (suma de las dos etapas, incluidas las llamadas que piden corregir el formato), `missing_fields` (rutas separadas por `;`) y `extraction_raw` (el texto de la extracción o, si Groq rechazó la última llamada con un 400 que trae `failed_generation`, ese texto). `json_valid` es el `is_valid` de la validación contra el esquema del tipo predicho, aunque la clasificación se haya equivocado; si no hubo validación, `False`.
 - Imprime un resumen con: el modelo de `GROQ_MODEL` y `PROMPT_VERSION`; el acierto en clasificación (aciertos/total y %); el porcentaje de JSON válidos sobre el total; la latencia media y p95 por imagen (suma de las dos llamadas, solo imágenes con las dos llamadas correctas); el número de errores por etapa; y, si se pasaron los precios, el coste estimado en USD de la muestra y extrapolado a las 1000 imágenes.
-- El modelo se da por **confirmado** si el acierto en clasificación es ≥ 95 % (23/24 con la muestra por defecto), los JSON válidos son ≥ 90 % (22/24), la latencia p95 por imagen es ≤ 10 s y el coste extrapolado a las 1000 imágenes es ≤ 10 USD (`MAX_DATASET_COST_USD` en el script, junto a los otros umbrales). Si falla alguno de los cuatro, queda **descartado** para la app. Si los tres primeros se cumplen pero no se pasaron los precios, el veredicto es **sin confirmar: falta el coste**, y hay que repetir con precios.
+- Los objetivos de calidad se dan por **cumplidos** si el acierto en clasificación es ≥ 95 % (23/24 con la muestra por defecto), los JSON válidos son ≥ 90 % (22/24), la latencia p95 por imagen es ≤ 10 s y el coste extrapolado a las 1000 imágenes es ≤ 10 USD (`MAX_DATASET_COST_USD` en el script, junto a los otros umbrales). Si falla alguno de los cuatro, quedan **no cumplidos**: el modelo se sigue usando, porque no hay otro, y el incumplimiento se anota en `README.md` como limitación conocida que cubre la revisión humana de la app. Si los tres primeros se cumplen pero no se pasaron los precios, el resultado es **sin comprobar: falta el coste**, y hay que repetir con precios.
 - La prueba se ejecuta con los esquemas revisados y con la cuota diaria sin gastar. El resultado, con las cifras del resumen, la fecha y el nombre del modelo, queda anotado en la sección «Tecnologías» de `README.md`, sustituyendo el de la primera prueba.
 
 ### Pruebas automáticas
@@ -94,8 +94,8 @@ El resultado de la evaluación solo se ve hoy en la consola de quien ejecuta el 
   - sin argumentos de muestra, hay 12 documentos de cada tipo y es la misma muestra que `sample_documents(..., per_type=12, seed=42)`;
   - con `--per-type 3`, hay 3 de cada tipo;
   - `--per-type 0` termina con un error de argumentos;
-  - sin precios, el resumen dice que el coste no se ha calculado y el veredicto nunca es «confirmado», y con un solo precio termina con un error de argumentos;
-  - con precios y los tres primeros umbrales cumplidos, un coste extrapolado de más de 10 USD da el veredicto «descartado», y uno de 10 USD o menos, «confirmado».
+  - sin precios, el resumen dice que el coste no se ha calculado y los objetivos nunca salen «cumplidos», y con un solo precio termina con un error de argumentos;
+  - con precios y los tres primeros umbrales cumplidos, un coste extrapolado de más de 10 USD da «no cumplidos», y uno de 10 USD o menos, «cumplidos».
 - `tests/test_metricas.py` comprueba, sin red, que:
   - `summarize_metrics()` da los conteos esperados para unas filas de ejemplo que incluyen un documento correcto, uno con campos incorrectos y ausentes, uno con JSON inválido sin objeto, uno con fallo de clasificación por cuota y uno con fallo de extracción por API;
   - `summarize_metrics([])` devuelve ceros y `mean_seconds` igual a `None`;
@@ -110,5 +110,5 @@ El resultado de la evaluación solo se ve hoy en la consola de quien ejecuta el 
 ### Revisión y prueba manual
 - `script/evaluar_metricas.py` y `src/app.py` no contienen el cálculo del resumen ni la lectura del CSV (revisión del diff en el PR).
 - Prueba manual con la API real, anotada en el PR: ejecutar `python script/evaluar_metricas.py --precio-entrada <USD/M> --precio-salida <USD/M>` (con precios, para anotar el coste en `README.md`), comprobar que procesa 24 documentos, que deja los dos CSV y cuántos fallan por cuota, abrir la app y comprobar que «Última evaluación» muestra ese fichero con las mismas cifras que imprimió el script.
-- `README.md` actualizado: muestra de 12 por tipo, el argumento `--per-type`, la sección «Última evaluación» de la pestaña y el veredicto del modelo.
+- `README.md` actualizado: muestra de 12 por tipo, el argumento `--per-type`, la sección «Última evaluación» de la pestaña y si el modelo cumple los objetivos.
 - `python -m pytest`, `ruff check .` y `ruff format --check .` en verde.

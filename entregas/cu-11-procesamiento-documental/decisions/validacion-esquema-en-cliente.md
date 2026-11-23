@@ -21,7 +21,7 @@ La primera opción fue pedírselo a Groq con `json_schema` en modo estricto, per
 
 Validar en el cliente convierte ese rechazo en una segunda oportunidad. Como las llamadas usan `temperature=0`, repetir la misma petición daría la misma respuesta: por eso el reintento lleva los errores concretos, que cambian el prompt.
 
-En la única ejecución hecha desde este cambio (19-11-2026, 18:25, `PROMPT_VERSION` 1.2), las 7 extracciones que llegaron al modelo dieron un JSON válido y no hubo ningún rechazo `json_validate_failed`. Son solo 7 facturas, porque la cuota diaria cortó la prueba: no basta para confirmar el modelo (ver `README.md`, «Tecnologías»), pero el fallo que motivó la decisión no se repitió.
+En la única ejecución hecha desde este cambio (19-11-2026, 18:25, `PROMPT_VERSION` 1.2), las 7 extracciones que llegaron al modelo dieron un JSON válido y no hubo ningún rechazo `json_validate_failed`. Son solo 7 facturas, porque la cuota diaria cortó la prueba: no basta para saber si el modelo cumple los objetivos (ver `README.md`, «Tecnologías»), pero el fallo que motivó la decisión no se repitió.
 
 ## Alternativas consideradas
 - **`json_schema` estricto en Groq.** Rechazada por las cifras de arriba: con imágenes, Groq no restringía la generación y rechazaba la respuesta entera.
