@@ -24,8 +24,16 @@ Groq también ofrece salida ajustada a un esquema (`json_schema` en modo estrict
 - Límites de uso por nivel (el diario de tokens cortó la primera prueba): https://console.groq.com/docs/rate-limits
 - Códigos de error de la API: https://console.groq.com/docs/errors
 - SDK de Python: https://github.com/groq/groq-python
-- `docs/Planificación.pdf`
-- Resultados de la primera prueba del modelo: `README.md`, sección «Tecnologías», y `output/prueba_modelo_*.csv`.
+- Planificación acordada con SDG (`docs/Planificación.pdf`, no publicado). En la semana 1 fija «configurar el entorno de desarrollo en Python y el acceso a la API online». La inferencia local queda como ampliación: «reemplazar las llamadas a la API online por un servidor local propio utilizando vLLM con un modelo abierto (ej. Qwen2-VL) […] sin modificar el código de la interfaz».
+- Acta de la reunión con SDG del 22-10-2026: «Probar groq, aunque sea algo tipo "hola mundo"».
+- Mediciones que justifican validar el esquema en el cliente. Salen de los CSV de `script/evaluar_metricas.py`, que no se versionan; el detalle está en `README.md`, sección «Tecnologías».
+
+  | Ejecución | Forma de pedir la respuesta | Documentos que llegaron al modelo | Rechazos 400 `json_validate_failed` | JSON válidos |
+  |---|---|---|---|---|
+  | 19-11-2026, 12:24 | `json_schema` estricto | 24 | 11 de 22 extracciones y 2 de 24 clasificaciones | 11 / 24 |
+  | 19-11-2026, 18:25 (`PROMPT_VERSION` 1.2) | `json_object` y validación en el cliente | 8 facturas (cortada por la cuota, 429) | 0 | 7 / 8 |
+
+  Uno de los rechazos de clasificación traía un `document_type` fuera del `enum`. Con el modo estricto aplicado de verdad, eso sería imposible: por eso se concluye que Groq no lo aplicaba. La segunda ejecución es demasiado pequeña para confirmar el modelo, pero no tuvo ningún rechazo.
 
 Cómo se llama a Groq en `src/procesamiento_documental/cliente.py`. Es la única llamada del proyecto. El SDK no reintenta (`max_retries=0`): los reintentos los hace el cliente, para medir bien la latencia y respetar `retry-after`.
 

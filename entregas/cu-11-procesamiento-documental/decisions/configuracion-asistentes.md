@@ -23,4 +23,13 @@ El equipo usa GitHub Copilot en VS Code y Claude Code. VS Code lee skills de `.g
 - https://code.visualstudio.com/docs/copilot/customization/agent-skills
 - https://code.visualstudio.com/docs/copilot/customization/custom-agents
 - https://code.claude.com/docs/en/skills
-- `docs/uso-asistentes-ia.pdf`, página 17
+- Guía del curso «Uso de asistentes de IA» (`docs/uso-asistentes-ia.pdf`), página 17, tabla «Dónde vive cada cosa en cada herramienta»:
+
+  | Concepto | GitHub Copilot (VS Code) | Claude Code |
+  |---|---|---|
+  | Instrucciones de proyecto | `AGENTS.md` o `.github/copilot-instructions.md` | `CLAUDE.md` o `AGENTS.md` |
+  | Skill | `SKILL.md` (agent skills) | `.claude/skills/<nombre>/SKILL.md` |
+  | Agente / subagente | `.github/agents/*.agent.md` | `.claude/agents/<nombre>.md` |
+  | Servidor MCP | `.vscode/mcp.json` | `.mcp.json` |
+
+  La guía añade que el curso «guarda sus skills en una carpeta agnóstica (`.agents/skills/`) y sus instrucciones en `AGENTS.md`». Este ADR se aparta de lo primero por el motivo dado en «Alternativas».

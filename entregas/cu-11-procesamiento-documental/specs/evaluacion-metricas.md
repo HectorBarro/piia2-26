@@ -21,10 +21,12 @@ Se reutiliza sin cambios salvo lo que se dice en «Qué construir»:
   - `prueba_modelo_<AAAAMMDD-HHMM>.csv`, para confirmar o descartar el modelo;
   - `metricas_<AAAAMMDD-HHMMSS-ffffff>.csv`, con la comparación frente a la verdad de referencia.
 
-  `evaluate_document(client, document) -> DocumentRows` devuelve las dos filas de un documento (`metrics` y `model_test`), construidas con `metrics_row()` y `model_test_row()`. Hoy usa 20 imágenes por tipo. Antes había un `script/prueba_modelo.py` aparte que volvía a llamar a Groq por la misma muestra; se ha quitado para no gastar la cuota dos veces.
+  `evaluate_document(client, document) -> DocumentRows` devuelve las dos filas de un documento (`metrics` y `model_test`), construidas con `metrics_row()` y `model_test_row()`. Ya usa 12 imágenes por tipo (punto 1 de «Qué construir»). Antes había un `script/prueba_modelo.py` aparte que volvía a llamar a Groq por la misma muestra; se ha quitado para no gastar la cuota dos veces.
 - `load_dataset()`, `sample_documents()` e `image_to_data_url()` de `ingesta.py`, los prompts de `prompts.py` y `compare_extraction()` de `metricas.py`.
 
 ## Qué construir
+
+> **Estado (23-11-2026):** los puntos 1 a 3 ya están en el código: `--per-type` con 12 por defecto, `METRICS_FIELDS`, `summarize_metrics()` y `load_latest_metrics()` en `metricas.py`, y la sección «Última evaluación» en la app. Donde los puntos dicen «hoy», describen el código anterior a ese cambio. Falta el punto 4. El intento del 19-11-2026 a las 18:25, con `PROMPT_VERSION` 1.2, se cortó por la cuota de Groq tras 8 facturas, así que no cuenta como medición (ver `README.md`, «Tecnologías»).
 Cuatro cambios, en este orden:
 
 1. **Muestra de 24 documentos.** `script/evaluar_metricas.py` procesa por defecto 12 facturas y 12 informes de alta, elegidos con `sample_documents(load_dataset(), per_type=12, seed=42)`. Un argumento opcional `--per-type N` (entero mayor que 0) cambia el número de cada tipo sin tocar el código. Nada más cambia en el script: sigue llamando a Groq una vez por documento, escribiendo los dos CSV con las mismas columnas e imprimiendo los dos resúmenes y el veredicto al terminar.

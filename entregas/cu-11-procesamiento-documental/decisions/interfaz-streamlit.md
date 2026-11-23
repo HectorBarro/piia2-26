@@ -17,7 +17,9 @@ SDG propuso Streamlit en la reunión 1 y en la planificación. Permite construir
 
 ## Referencias
 - https://streamlit.io/
-- `docs/Planificación.pdf`, `docs/Reuniones/Reunión1.docx`
+- Acta de la reunión 1 con SDG (08-10-2026, `docs/Reuniones/Reunión1.docx`, no publicada). Su primera línea es «Streamlit - https://streamlit.io/».
+- Acta del 22-10-2026: «Poner las cosas en formato tabla» y «Hacer un reporte de métricas de todos los documentos en otra pestaña». De ahí salen `st.data_editor` y la pestaña «Reporte de métricas».
+- Planificación acordada con SDG (`docs/Planificación.pdf`, no publicada). En la semana 2: «Crear la interfaz gráfica principal en Streamlit (app.py)». En la semana 4: «Exportación multiformato: añadir botones para descargar la información procesada en Excel (.xlsx), CSV y JSON (st.download_button)».
 - Componentes que usa la app, con su documentación oficial:
 
   | Necesidad | Componente | Documentación |
